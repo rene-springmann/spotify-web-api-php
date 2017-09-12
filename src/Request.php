@@ -198,6 +198,12 @@ class Request
 
         $options[CURLOPT_URL] = $url;
 
+        $proxy = config('app.spotify.http_proxy', null);
+
+        if ($proxy !== null) {
+            $options[CURLOPT_PROXY] = $proxy;
+        }
+
         $ch = curl_init();
         curl_setopt_array($ch, $options);
 
@@ -207,7 +213,13 @@ class Request
             throw new SpotifyWebAPIException('cURL transport error: ' . curl_errno($ch) . ' ' .  curl_error($ch));
         }
 
-        list($headers, $body) = explode("\r\n\r\n", $response, 2);
+        if ($proxy !== null) {
+            //if proxy used a additional header is present that we could ignore
+            list($proxy_header, $headers, $body) = explode("\r\n\r\n", $response, 3);
+        }
+        else {
+            list($headers, $body) = explode("\r\n\r\n", $response, 2);
+        }
 
         $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $headers = $this->parseHeaders($headers);
